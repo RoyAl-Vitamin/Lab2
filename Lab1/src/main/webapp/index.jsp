@@ -7,6 +7,7 @@
 --%>
 <%@ page contentType="text/html;charset=UTF-8" language="java" %>
 <%@ taglib prefix="c" uri="http://java.sun.com/jsp/jstl/core"%>
+<%@ taglib prefix="fn" uri="http://java.sun.com/jsp/jstl/functions" %>
 <html>
     <head>
         <meta charset="UTF-8">
@@ -51,32 +52,34 @@
                     </form>
                 </div>
             </div>
-            <div class="row">
-                <div class="col-lg-12">
-                    <table class="table table-hover">
-                        <thead>
-                            <tr>
-                                <th>prefix</th>
-                                <th>name</th>
-                                <th>index</th>
-                            </tr>
-                        </thead>
-                        <c:forEach items="${list}" var="item">
-                            <tr>
-                                <td>
-                                   <c:out value="${item.prefix}" />
-                                </td>
-                                <td>
-                                    <c:out value="${item.name}" />
-                                </td>
-                                <td>
-                                    <c:out value="${item.index}" />
-                                </td>
-                            </tr>
-                        </c:forEach>
-                    </table>
-                </div>
-            </div
+            <c:if test="${list != null && fn:length(list) != 0}">
+                <div class="row">
+                    <div class="col-lg-12">
+                        <table class="table table-hover">
+                            <thead>
+                                <tr>
+                                    <th>prefix</th>
+                                    <th>name</th>
+                                    <th>index</th>
+                                </tr>
+                            </thead>
+                            <c:forEach items="${list}" var="item">
+                                <tr>
+                                    <td>
+                                       <c:out value="${item.prefix}" />
+                                    </td>
+                                    <td>
+                                        <c:out value="${item.name}" />
+                                    </td>
+                                    <td>
+                                        <c:out value="${item.index}" />
+                                    </td>
+                                </tr>
+                            </c:forEach>
+                        </table>
+                    </div>
+                </div
+            </c:if>
         </div>
     </body>
 </html>

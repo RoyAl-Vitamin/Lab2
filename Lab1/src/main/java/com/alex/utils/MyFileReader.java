@@ -12,13 +12,13 @@ import java.util.logging.Logger;
 public class MyFileReader implements Runnable {
 
     private final String driverName = "org.sqlite.JDBC";
-    private final String connectionString = "jdbc:sqlite:sample.db";
+    private final String connectionString = "jdbc:sqlite::memory:";
 
     private File file;
 
     private Map<String, Integer> hashMap = new HashMap<>();
 
-    private Connection connection;
+    public static Connection connection;
 
     private Logger log = Logger.getLogger(MyFileReader.class.getName());
 

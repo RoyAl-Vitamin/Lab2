@@ -2,22 +2,12 @@ package com.alex.utils;
 
 public class Row {
 
-    private String prefix;
     private String name;
     private int index;
 
-    public Row(String prefix, String name, int i) {
+    public Row(String name, int i) {
         this.index = i;
-        this.prefix = prefix;
         this.name = name;
-    }
-
-    public String getPrefix() {
-        return prefix;
-    }
-
-    public void setPrefix(String prefix) {
-        this.prefix = prefix;
     }
 
     public String getName() {
