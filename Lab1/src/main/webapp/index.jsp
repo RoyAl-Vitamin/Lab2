@@ -31,7 +31,7 @@
                 <div class="col-lg-12">
                     <form action="index" method="post">
                         <div class="form-group btn-group col-lg-12">
-                            <input name="text" type="text" class="form-control">
+                            <input name="text" type="text" class="form-control" value="${sentence}">
                             <button type="submit" class="btn btn-primary">Submit</button>
 
                             <div class="btn-group">
@@ -58,16 +58,12 @@
                         <table class="table table-hover">
                             <thead>
                                 <tr>
-                                    <th>prefix</th>
                                     <th>name</th>
                                     <th>index</th>
                                 </tr>
                             </thead>
                             <c:forEach items="${list}" var="item">
                                 <tr>
-                                    <td>
-                                       <c:out value="${item.prefix}" />
-                                    </td>
                                     <td>
                                         <c:out value="${item.name}" />
                                     </td>

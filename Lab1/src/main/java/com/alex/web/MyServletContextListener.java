@@ -1,6 +1,7 @@
 package com.alex.web;
 
 import com.alex.utils.MyFileReader;
+import com.alex.utils.Utils;
 
 import javax.servlet.ServletContextEvent;
 import javax.servlet.ServletContextListener;
@@ -21,12 +22,14 @@ public class MyServletContextListener implements ServletContextListener {
     @Override
     public void contextDestroyed(ServletContextEvent arg0) {
         //Notification that the servlet context is about to be shut down.
+        log.info("close connection DB");
+        Utils.closeConnectToDB();
     }
 
     @Override
     public void contextInitialized(ServletContextEvent arg0) {
         log.info("before starting reload db or create db");
-        // Init DB войной и миром
+        Utils.getConnection();
         // do all the tasks that you need to perform just after the server starts
         //Notification that the web application initialization process is starting
         ExecutorService pool = Executors.newFixedThreadPool(POOL_SIZE);
