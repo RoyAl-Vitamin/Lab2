@@ -1,21 +1,17 @@
 package com.alex.utils;
 
-import org.apache.maven.model.Model;
-import org.apache.maven.model.io.xpp3.MavenXpp3Reader;
-import org.codehaus.plexus.util.xml.pull.XmlPullParserException;
-
-import java.io.FileReader;
 import java.io.IOException;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.sql.Statement;
+import java.util.Properties;
 import java.util.logging.Logger;
 
 public class Utils {
 
     private static final String driverName = "org.sqlite.JDBC";
-//    private static final String connectionString = "jdbc:sqlite::memory:";
+
     private static String connectionString;
 
     private static Logger log = Logger.getLogger(Utils.class.getName());
@@ -23,28 +19,24 @@ public class Utils {
     private static Connection connection = null;
 
     private static void preCreate() {
-        // Костыль внедрён
-        /*MavenXpp3Reader reader = new MavenXpp3Reader();
-        Model model = null;
-        try {
-            model = reader.read(new FileReader("pom.xml"));
-        } catch (IOException e) {
-            e.printStackTrace();
-            log.warning(e.getMessage());
-        } catch (XmlPullParserException e) {
-            e.printStackTrace();
-            log.warning(e.getMessage());
-        }*/
-
+        // read from system enviroments
         String catalinaHome = System.getenv().get("CATALINA_HOME");
         if (catalinaHome == null) {
             log.warning("$CATALINA_HOME must be determinate!");
             throw new RuntimeException("$CATALINA_HOME must be determinate!");
         }
         // read from init.properties
+        String version, artifactId;
+        try {
+            final Properties properties = new Properties();
+            properties.load(Utils.class.getResourceAsStream("/init.properties"));
+            version = properties.getProperty("version");
+            artifactId = properties.getProperty("artifactId");
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }
 
-//        connectionString = "jdbc:sqlite:" + System.getProperties().getProperty("CATALINA_HOME") + "webapps/" + model.getArtifactId() + "-" + model.getVersion() + "/sqlitedb.db";
-        connectionString = "jdbc:sqlite:" + catalinaHome + "/webapps/Lab1-1.0-SNAPSHOT/WEB-INF/classes/sqlitedb.db";
+        connectionString = "jdbc:sqlite:" + catalinaHome + "/webapps/" + artifactId + "-" + version +"/WEB-INF/classes/sqlitedb.db";
         log.info("connectionString == " + connectionString);
     }
 
@@ -62,14 +54,12 @@ public class Utils {
             connection = DriverManager.getConnection(connectionString);
         } catch (ClassNotFoundException e) {
             log.warning("Can't get class. No driver found");
-            e.printStackTrace();
             connection = null;
-            return;
+            throw new RuntimeException(e);
         } catch (SQLException e) {
             log.warning("Can't get connection. Incorrect URL");
-            e.printStackTrace();
             connection = null;
-            return;
+            throw new RuntimeException(e);
         }
         try {
             Statement statmt = connection.createStatement();
