@@ -1,3 +1,9 @@
 #all-width {
     width: 100%;
 }
+#download-file {
+    cursor: pointer;
+}
+.title-file {
+    margin: 10px 10px;
+}

@@ -19,6 +19,10 @@
         <script src="js/bootstrap.min.js"></script>
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/4.7.0/css/font-awesome.min.css">
         <link rel="stylesheet" href="css/main.css">
+        <!-- IE -->
+        <link rel="shortcut icon" type="image/x-icon" href="favicon.ico" />
+        <!-- other browsers -->
+        <link rel="icon" type="image/x-icon" href="favicon.ico"/>
     </head>
     <body>
         <div class="container">
@@ -39,10 +43,10 @@
                                     <i class="fa fa-cog" style="font-size:24px"></i>
                                 </button>
                                 <div class="dropdown-menu">
-                                    <a class="dropdown-item" href="#">
+                                    <a class="dropdown-item" href="dropdb">
                                         <i class="fa fa-database" style="font-size:24px; min-width: 26px;"></i> Drop DB
                                     </a>
-                                    <a class="dropdown-item" href="#">
+                                    <a class="dropdown-item" id="download-file" data-toggle="modal" data-target="#myModal">
                                         <i class="fa fa-cloud-upload" style="font-size:24px; min-width: 26px;"></i> Download file
                                     </a>
                                 </div>
@@ -50,6 +54,9 @@
 
                         </div>
                     </form>
+                    <div class="row">
+                        DB contains ${count} files
+                    </div>
                 </div>
             </div>
             <c:if test="${list != null && fn:length(list) != 0}">
@@ -76,6 +83,60 @@
                     </div>
                 </div
             </c:if>
+        </div>
+
+        <!-- The Modal -->
+        <div class="modal fade" id="myModal">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+
+                    <!-- Modal Header -->
+                    <div class="modal-header">
+                        <h4 class="modal-title">Download file</h4>
+                        <button type="button" class="close" data-dismiss="modal">&times;</button>
+                    </div>
+
+                    <!-- Modal body -->
+                    <div class="modal-body">
+                        <div class="row align-content-md-center">
+                            <form method="POST" action="download" class="form-inline w-100">
+                                <div class="row w-100">
+                                    <div class="col">
+                                        <label class="title-file" for="path">Put file adress:</label>
+                                    </div>
+                                    <div class="col">
+                                        <input type="url" name="url" class="form-control" id="path">
+                                    </div>
+                                    <div class="col align-baseline">
+                                        <button type="submit" class="btn btn-primary">Submit</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                        <div class="row align-content-md-center">
+                            <form method="POST" action="download" class="form-inline w-100">
+                                <div class="row w-100">
+                                    <div class="col">
+                                        <label class="title-file" for="file">Put file:</label>
+                                    </div>
+                                    <div class="col">
+                                        <input type="file" name="file" class="form-control" id="file">
+                                    </div>
+                                    <div class="col">
+                                        <button type="submit" class="btn btn-primary">Submit</button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+
+                    <!-- Modal footer -->
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-danger" data-dismiss="modal">Close</button>
+                    </div>
+
+                </div>
+            </div>
         </div>
     </body>
 </html>

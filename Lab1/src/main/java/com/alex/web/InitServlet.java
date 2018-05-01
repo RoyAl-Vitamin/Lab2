@@ -1,6 +1,5 @@
 package com.alex.web;
 
-import com.alex.utils.MyFileReader;
 import com.alex.utils.Row;
 import com.alex.utils.Utils;
 
@@ -16,12 +15,14 @@ import java.sql.SQLException;
 import java.util.*;
 import java.util.logging.Logger;
 
-@WebServlet(name = "InitServlet", urlPatterns = "/index")
+import static com.alex.utils.Utils.getCountRowDB;
+
+@WebServlet(name="InitServlet", urlPatterns="/index")
 public class InitServlet extends HttpServlet {
 
     private Logger log = Logger.getLogger(InitServlet.class.getName());
 
-    private final static String SQL =
+    private final static String MAP_NAME_COUNT =
             "SELECT fi.file_input_file_name, wc.word_count_count " +
             "FROM word_count wc " +
             "LEFT OUTER JOIN file_input fi ON fi.id = wc.file_input_id " +
@@ -31,7 +32,7 @@ public class InitServlet extends HttpServlet {
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         request.setCharacterEncoding("UTF-8");
         if (request.getParameter("text") == null || request.getParameter("text").trim().length() == 0) {
-//            request.setAttribute("list", Arrays.asList(new Row("empty", 0)));
+            request.setAttribute("count", getCountRowDB());
             request.getRequestDispatcher("index.jsp").forward(request, response);
             return;
         }
@@ -46,7 +47,7 @@ public class InitServlet extends HttpServlet {
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         if (request.getParameter("text") == null || request.getParameter("text").trim().length() == 0) {
-//            request.setAttribute("list", Arrays.asList(new Row("#EMPTY", 0)));
+            request.setAttribute("count", getCountRowDB());
             request.getRequestDispatcher("index.jsp").forward(request, response);
             return;
         }
@@ -70,7 +71,7 @@ public class InitServlet extends HttpServlet {
             log.info("word == " + word);
         }
         for (String word : listString) {
-            PreparedStatement stmt = Utils.getConnection().prepareStatement(SQL);
+            PreparedStatement stmt = Utils.getConnection().prepareStatement(MAP_NAME_COUNT);
             stmt.setString(1, word);
             ResultSet rs = stmt.executeQuery();
             log.info("FOUND START");
@@ -88,7 +89,8 @@ public class InitServlet extends HttpServlet {
 
         if (map.isEmpty()) {
             log.info("MAP is Empty");
-            request.setAttribute("list", Arrays.asList(new Row(sentence, 0)));
+            request.setAttribute("list", Arrays.asList(new Row("#EMPTY", 0)));
+            request.setAttribute("count", getCountRowDB());
             request.getRequestDispatcher("index.jsp").forward(request, response);
             return;
         }
@@ -112,6 +114,7 @@ public class InitServlet extends HttpServlet {
         for (Row row : newList) {
             log.info("getName == " + row.getName() + " getIndex == " + row.getIndex());
         }
+        request.setAttribute("count", getCountRowDB());
         request.getRequestDispatcher("index.jsp").forward(request, response);
     }
 }

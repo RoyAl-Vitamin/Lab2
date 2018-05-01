@@ -1,10 +1,7 @@
 package com.alex.utils;
 
 import java.io.IOException;
-import java.sql.Connection;
-import java.sql.DriverManager;
-import java.sql.SQLException;
-import java.sql.Statement;
+import java.sql.*;
 import java.util.Properties;
 import java.util.logging.Logger;
 
@@ -17,6 +14,8 @@ public class Utils {
     private static Logger log = Logger.getLogger(Utils.class.getName());
 
     private static Connection connection = null;
+
+    private final static String COUNT_FILES = "SELECT Count(fi.id) FROM file_input fi";
 
     private static void preCreate() {
         // read from system enviroments
@@ -80,5 +79,18 @@ public class Utils {
             log.warning("Can't close connection");
             e.printStackTrace();
         }
+    }
+
+    public static int getCountRowDB() {
+        int count = 0;
+        try {
+            ResultSet rs = Utils.getConnection().prepareStatement(COUNT_FILES).executeQuery();
+            if (rs.next()) {
+                count = rs.getInt(1);
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
+        return count;
     }
 }

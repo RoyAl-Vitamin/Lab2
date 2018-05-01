@@ -7,10 +7,11 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 
-@WebServlet(name = "HelloServlet", urlPatterns = {"/hello"}, loadOnStartup = 1)
+@WebServlet(name="DropDB2", urlPatterns="/dropdb2") // , loadOnStartup = 1
 public class NewTestServlet extends HttpServlet {
     protected void doGet(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
-        response.getWriter().print("Hello, World!");
+
+        request.getRequestDispatcher("index.jsp").forward(request, response);
     }
 }
