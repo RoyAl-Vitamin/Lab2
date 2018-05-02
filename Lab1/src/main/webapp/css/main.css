@@ -7,3 +7,30 @@
 .title-file {
     margin: 10px 10px;
 }
+
+body {
+    background: #E1E2E1;
+    color: white;
+}
+
+.primary-dark {
+    background: #00227b;
+    color: white;
+}
+.primary-main {
+    background: #3949ab;
+    color: white;
+}
+.primary-light {
+    background: #6f74dd;
+    color: white;
+}
+.primary-main .table-hover tbody tr:hover {
+    background: #6f74dd;
+}
+form[action="index"] .form-control {
+    border-radius: 0.25rem 0rem 0rem 0.25rem;
+}
+.modal-header, .title-file {
+    color: black;
+}

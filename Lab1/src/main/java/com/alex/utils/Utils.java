@@ -17,6 +17,8 @@ public class Utils {
 
     private final static String COUNT_FILES = "SELECT Count(fi.id) FROM file_input fi";
 
+    private static final String SELECT_FI_FILE_NAME = "SELECT fi.file_input_file_name FROM file_input fi WHERE fi.file_input_file_name = ?;";
+
     private static void preCreate() {
         // read from system enviroments
         String catalinaHome = System.getenv().get("CATALINA_HOME");
@@ -92,5 +94,22 @@ public class Utils {
             throw new RuntimeException(e);
         }
         return count;
+    }
+
+    /**
+     * Проверяет, существует ли запись с таким именем файла в БД
+     * @param fileName
+     * @return
+     */
+    public static boolean rowIsExists(String fileName) {
+        try {
+            PreparedStatement pstmt = connection.prepareStatement(SELECT_FI_FILE_NAME);
+            pstmt.setString(1, fileName);
+            ResultSet rs = pstmt.executeQuery();
+
+            return rs.next();
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
+        }
     }
 }

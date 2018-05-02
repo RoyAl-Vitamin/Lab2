@@ -25,17 +25,17 @@
         <link rel="icon" type="image/x-icon" href="favicon.ico"/>
     </head>
     <body>
-        <div class="container">
-            <div class="row">
+        <div class="container h-100 primary-main">
+            <div class="row p-1 primary-dark">
                 <div class="col-lg-12">
                     <h1 style="text-align: center;">Lab 2</h1>
                 </div>
             </div>
-            <div class="row">
+            <div class="row pt-4 primary-main">
                 <div class="col-lg-12">
                     <form action="index" method="post">
                         <div class="form-group btn-group col-lg-12">
-                            <input name="text" type="text" class="form-control" value="${sentence}">
+                            <input name="text" type="text" class="form-control" value="${sentence}" placeholder="DB contains ${count} files">
                             <button type="submit" class="btn btn-primary">Submit</button>
 
                             <div class="btn-group">
@@ -54,13 +54,10 @@
 
                         </div>
                     </form>
-                    <div class="row">
-                        DB contains ${count} files
-                    </div>
                 </div>
             </div>
             <c:if test="${list != null && fn:length(list) != 0}">
-                <div class="row">
+                <div class="row p-3 primary-main">
                     <div class="col-lg-12">
                         <table class="table table-hover">
                             <thead>
@@ -99,13 +96,13 @@
                     <!-- Modal body -->
                     <div class="modal-body">
                         <div class="row align-content-md-center">
-                            <form method="POST" action="download" class="form-inline w-100">
+                            <form method="POST" action="download" enctype="application/x-www-form-urlencoded" class="form-inline w-100">
                                 <div class="row w-100">
                                     <div class="col">
                                         <label class="title-file" for="path">Put file adress:</label>
                                     </div>
                                     <div class="col">
-                                        <input type="url" name="url" class="form-control" id="path">
+                                        <input type="url" name="url" class="form-control" id="path" placeholder="Http adress">
                                     </div>
                                     <div class="col align-baseline">
                                         <button type="submit" class="btn btn-primary">Submit</button>
@@ -114,7 +111,7 @@
                             </form>
                         </div>
                         <div class="row align-content-md-center">
-                            <form method="POST" action="download" class="form-inline w-100">
+                            <form method="POST" action="download" enctype="multipart/form-data" class="form-inline w-100">
                                 <div class="row w-100">
                                     <div class="col">
                                         <label class="title-file" for="file">Put file:</label>

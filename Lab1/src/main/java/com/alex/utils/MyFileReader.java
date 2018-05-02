@@ -11,27 +11,30 @@ import java.util.logging.Logger;
 
 public class MyFileReader implements Runnable {
 
+    private static Logger log = Logger.getLogger(MyFileReader.class.getName());
+
+    private static final String INSERT_INTO_FI = "INSERT INTO 'file_input' ('file_input_file_name') VALUES (?);";
+
+    private static final String INSERT_INTO_WC = "INSERT INTO 'word_count' ('word_count_word', 'word_count_count', 'file_input_id') VALUES (?, ?, ?);";
+
+    private static final String SELECT_FI_ID = "SELECT file_input.id FROM file_input WHERE file_input_file_name = ?";
+
     private File file;
 
-    private Map<String, Integer> hashMap = new HashMap<>();
-
-    public Connection connection;
-
-    private Logger log = Logger.getLogger(MyFileReader.class.getName());
+    public static Connection connection = Utils.getConnection();
 
     @Override
     public void run() {
-        connection = Utils.getConnection();
-        read();
-        pasteIntoDB();
+        pasteIntoDB(file.getName(), read());
     }
 
     /**
      * Вставка данных в ХэшМап для последующей вставки в БД
      */
-    private void read() {
+    private Map<String, Integer> read() {
         try(FileReader reader = new FileReader(file)) {
             Scanner scan = new Scanner(reader);
+            Map<String, Integer> hashMap = new HashMap<>();
             while (scan.hasNextLine()) {
                 String[] wordArray = scan.nextLine().trim().replaceAll("[^a-zA-Zа-яА-Я ]", "").toLowerCase().split("\\s+");
 
@@ -43,32 +46,31 @@ public class MyFileReader implements Runnable {
                     }
                 }
             }
-        }
-        catch(IOException ex){
-            log.warning(ex.getMessage());
+            return hashMap;
+        } catch(IOException ex){
+            throw new RuntimeException(ex);
         }
     }
 
     /**
      * Вставка данных в таблицу
      */
-    private void pasteIntoDB() {
-        String filePath = file.getAbsolutePath();
-        if (!rowIsExists(filePath)) {
+    public static void pasteIntoDB(String fileName, Map<String, Integer> map) {
+        if (!Utils.rowIsExists(fileName)) {
             try {
                 connection.setAutoCommit(false);
-                PreparedStatement stmt = connection.prepareStatement("INSERT INTO 'file_input' ('file_input_file_name') VALUES (?);");
-                stmt.setString(1, filePath);
+                PreparedStatement stmt = connection.prepareStatement(INSERT_INTO_FI);
+                stmt.setString(1, fileName);
                 stmt.executeUpdate();
-                stmt = connection.prepareStatement("SELECT file_input.id FROM file_input WHERE file_input_file_name = ?");
-                stmt.setString(1, filePath);
+                stmt = connection.prepareStatement(SELECT_FI_ID);
+                stmt.setString(1, fileName);
                 ResultSet rs = stmt.executeQuery();
                 int tableId = 0;
                 while (rs.next()) {
                     tableId = rs.getInt(1);
                 }
-                for (Map.Entry<String, Integer> entry : hashMap.entrySet()) {
-                    stmt = connection.prepareStatement("INSERT INTO 'word_count' ('word_count_word', 'word_count_count', 'file_input_id') VALUES (?, ?, ?); ");
+                for (Map.Entry<String, Integer> entry : map.entrySet()) {
+                    stmt = connection.prepareStatement(INSERT_INTO_WC);
                     stmt.setString(1, entry.getKey());
                     stmt.setInt(2, entry.getValue());
                     stmt.setInt(3, tableId);
@@ -87,23 +89,9 @@ public class MyFileReader implements Runnable {
                     e1.printStackTrace();
                 }
             }
+        } else {
+            log.warning("File exist! Conflict name");
         }
-    }
-
-    private boolean rowIsExists(String filePath) {
-        try {
-            PreparedStatement pstmt = connection.prepareStatement("SELECT fi.file_input_file_name FROM file_input fi WHERE fi.file_input_file_name = ?;");
-            pstmt.setString(1, filePath);
-            ResultSet rs = pstmt.executeQuery();
-            if (rs.next()) {
-                return true;
-            } else {
-                return false;
-            }
-        } catch (SQLException e) {
-            log.warning(e.getMessage());
-        }
-        return true;
     }
 
     public MyFileReader(File file) {
