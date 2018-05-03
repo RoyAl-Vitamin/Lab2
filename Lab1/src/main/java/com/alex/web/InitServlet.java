@@ -30,7 +30,6 @@ public class InitServlet extends HttpServlet {
             "ORDER BY wc.word_count_count DESC;";
 
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        request.setCharacterEncoding("UTF-8");
         if (request.getParameter("text") == null || request.getParameter("text").trim().length() == 0) {
             request.setAttribute("count", getCountRowDB());
             request.getRequestDispatcher("index.jsp").forward(request, response);
@@ -67,16 +66,16 @@ public class InitServlet extends HttpServlet {
         Map<String, Integer> map = new HashMap<>();
         String[] listString = sentence.split("\\s+");
         log.info("SENTENCE: " + sentence);
-        for (String word : listString) {
-            log.info("word == " + word);
-        }
+//        for (String word : listString) {
+//            log.info("word == " + word);
+//        }
         for (String word : listString) {
             PreparedStatement stmt = Utils.getConnection().prepareStatement(MAP_NAME_COUNT);
             stmt.setString(1, word);
             ResultSet rs = stmt.executeQuery();
             log.info("FOUND START");
             while (rs.next()) {
-                log.info("FOUND WORD == " + rs.getString(1) + " COUNT == " + rs.getInt(2));
+//                log.info("FOUND WORD == " + rs.getString(1) + " COUNT == " + rs.getInt(2));
                 if (map.containsKey(rs.getString(1))) {
                     Integer i = map.get(rs.getString(1));
                     map.put(rs.getString(1), i + rs.getInt(2));
@@ -89,19 +88,18 @@ public class InitServlet extends HttpServlet {
 
         if (map.isEmpty()) {
             log.info("MAP is Empty");
-            request.setAttribute("list", Arrays.asList(new Row("#EMPTY", 0)));
+            request.setAttribute("list", Collections.singletonList(new Row("#EMPTY", 0)));
             request.setAttribute("count", getCountRowDB());
             request.getRequestDispatcher("index.jsp").forward(request, response);
             return;
         }
-        log.info("MAP:");
-        for (Map.Entry<String, Integer> entry : map.entrySet()) {
-            log.info("getKey == " + entry.getKey() + " getValue" + entry.getValue());
-        }
+//        log.info("MAP:");
+//        for (Map.Entry<String, Integer> entry : map.entrySet()) {
+//            log.info("getKey == " + entry.getKey() + " getValue" + entry.getValue());
+//        }
 
 
         List<Map.Entry<String, Integer>> list = new ArrayList<>(map.entrySet());
-//        list.sort(Comparator.comparing(Map.Entry::getValue));
         list.sort((Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2)-> o2.getValue().compareTo(o1.getValue()));
 
         List<Row> newList = new ArrayList<>();

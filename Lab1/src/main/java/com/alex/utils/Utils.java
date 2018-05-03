@@ -1,5 +1,8 @@
 package com.alex.utils;
 
+import org.sqlite.SQLiteConfig;
+
+import java.io.File;
 import java.io.IOException;
 import java.sql.*;
 import java.util.Properties;
@@ -15,9 +18,13 @@ public class Utils {
 
     private static Connection connection = null;
 
-    private final static String COUNT_FILES = "SELECT Count(fi.id) FROM file_input fi";
+    private static final String COUNT_FILES = "SELECT Count(fi.id) FROM file_input fi";
 
     private static final String SELECT_FI_FILE_NAME = "SELECT fi.file_input_file_name FROM file_input fi WHERE fi.file_input_file_name = ?;";
+
+    private static final String CREATE_TABLE_FI = "CREATE TABLE if not exists 'file_input' ('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'file_input_file_name' text unique);";
+
+    private static final String CREATE_TABLE_WC  = "CREATE TABLE if not exists 'word_count' ('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'word_count_word' text, 'word_count_count' INT, file_input_id REFERENCES file_input(id));";
 
     private static void preCreate() {
         // read from system enviroments
@@ -37,11 +44,20 @@ public class Utils {
             throw new RuntimeException(e);
         }
 
-        connectionString = "jdbc:sqlite:" + catalinaHome + "/webapps/" + artifactId + "-" + version +"/WEB-INF/classes/sqlitedb.db";
-        log.info("connectionString == " + connectionString);
+        StringBuilder sb = new StringBuilder("jdbc:sqlite:");
+        sb.append(catalinaHome).append(File.separator).append("webapps").append(File.separator).append(artifactId)
+                .append("-").append(version).append(File.separator).append("WEB-INF").append(File.separator)
+                .append("classes").append(File.separator).append("sqlitedb.db");
+//        connectionString = "jdbc:sqlite:" + catalinaHome + File.separator + "webapps" + File.separator + artifactId
+//                + "-" + version + File.separator + "WEB-INF" + File.separator + "classes" + File.separator
+//                + "sqlitedb.db";
+
+        connectionString = sb.toString();
+
+//        log.info("connectionString == " + connectionString);
     }
 
-    public static Connection getConnection() {
+    public static synchronized Connection getConnection() {
         if (connection == null) {
             preCreate();
             connectToDB();
@@ -52,7 +68,10 @@ public class Utils {
     private static void connectToDB() {
         try {
             Class.forName(driverName);
-            connection = DriverManager.getConnection(connectionString);
+            SQLiteConfig config = new SQLiteConfig();
+            config.setEncoding(SQLiteConfig.Encoding.UTF8);
+            connection = DriverManager.getConnection(connectionString, config.toProperties());
+//            connection = DriverManager.getConnection(connectionString);
         } catch (ClassNotFoundException e) {
             log.warning("Can't get class. No driver found");
             connection = null;
@@ -65,11 +84,11 @@ public class Utils {
         try {
             Statement statmt = connection.createStatement();
 
-            statmt.execute("CREATE TABLE if not exists 'file_input' ('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'file_input_file_name' text unique);");
-            statmt.execute("CREATE TABLE if not exists 'word_count' ('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'word_count_word' text, 'word_count_count' INT, file_input_id REFERENCES file_input(id));");
+            statmt.execute(CREATE_TABLE_FI);
+            statmt.execute(CREATE_TABLE_WC);
         } catch (SQLException e) {
             log.warning("Can't create Table");
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 

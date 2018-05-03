@@ -1,8 +1,7 @@
 package com.alex.utils;
 
-import java.io.File;
-import java.io.FileReader;
-import java.io.IOException;
+import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.sql.*;
 import java.util.HashMap;
 import java.util.Map;
@@ -32,7 +31,8 @@ public class MyFileReader implements Runnable {
      * Вставка данных в ХэшМап для последующей вставки в БД
      */
     private Map<String, Integer> read() {
-        try(FileReader reader = new FileReader(file)) {
+//        try(FileReader reader = new FileReader(file)) {
+        try(InputStreamReader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
             Scanner scan = new Scanner(reader);
             Map<String, Integer> hashMap = new HashMap<>();
             while (scan.hasNextLine()) {
@@ -58,6 +58,7 @@ public class MyFileReader implements Runnable {
     public static void pasteIntoDB(String fileName, Map<String, Integer> map) {
         if (!Utils.rowIsExists(fileName)) {
             try {
+                // SQL Batch?
                 connection.setAutoCommit(false);
                 PreparedStatement stmt = connection.prepareStatement(INSERT_INTO_FI);
                 stmt.setString(1, fileName);
@@ -76,7 +77,7 @@ public class MyFileReader implements Runnable {
                     stmt.setInt(3, tableId);
                     stmt.executeUpdate();
                 }
-                //            connection.commit();
+                connection.commit();
                 connection.setAutoCommit(true);
 
             } catch (SQLException e) {

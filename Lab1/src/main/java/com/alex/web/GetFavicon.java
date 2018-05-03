@@ -15,6 +15,7 @@ public class GetFavicon extends HttpServlet {
 
     @Override
     public void doGet(HttpServletRequest request, HttpServletResponse response) throws IOException {
+        response.setContentType("image/x-icon");
         InputStream is = GetFavicon.class.getResourceAsStream("/favicon.ico");
         final byte[] buffer = new byte[BUFFER_SIZE];
         int n;
