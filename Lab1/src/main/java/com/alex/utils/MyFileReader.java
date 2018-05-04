@@ -8,6 +8,9 @@ import java.util.Map;
 import java.util.Scanner;
 import java.util.logging.Logger;
 
+import static java.sql.Statement.EXECUTE_FAILED;
+import static java.sql.Statement.SUCCESS_NO_INFO;
+
 public class MyFileReader implements Runnable {
 
     private static Logger log = Logger.getLogger(MyFileReader.class.getName());
@@ -20,7 +23,7 @@ public class MyFileReader implements Runnable {
 
     private File file;
 
-    public static Connection connection = Utils.getConnection();
+    public static Connection connection = Utils.getMainConnection();
 
     @Override
     public void run() {
@@ -57,38 +60,59 @@ public class MyFileReader implements Runnable {
      */
     public static void pasteIntoDB(String fileName, Map<String, Integer> map) {
         if (!Utils.rowIsExists(fileName)) {
-            try {
-                // SQL Batch?
-                connection.setAutoCommit(false);
-                PreparedStatement stmt = connection.prepareStatement(INSERT_INTO_FI);
-                stmt.setString(1, fileName);
-                stmt.executeUpdate();
-                stmt = connection.prepareStatement(SELECT_FI_ID);
-                stmt.setString(1, fileName);
-                ResultSet rs = stmt.executeQuery();
-                int tableId = 0;
-                while (rs.next()) {
-                    tableId = rs.getInt(1);
-                }
-                for (Map.Entry<String, Integer> entry : map.entrySet()) {
-                    stmt = connection.prepareStatement(INSERT_INTO_WC);
-                    stmt.setString(1, entry.getKey());
-                    stmt.setInt(2, entry.getValue());
-                    stmt.setInt(3, tableId);
+            boolean isOk = true;
+            try (Connection localConnection = Utils.getNewConnection()) {
+                localConnection.setAutoCommit(false);
+                try {
+                    PreparedStatement stmt = localConnection.prepareStatement(INSERT_INTO_FI);
+                    stmt.setString(1, fileName);
                     stmt.executeUpdate();
+                    stmt = localConnection.prepareStatement(SELECT_FI_ID);
+                    stmt.setString(1, fileName);
+                    ResultSet rs = stmt.executeQuery();
+                    int tableId = 0;
+                    if (rs.next()) {
+                        tableId = rs.getInt(1);
+                    } else {
+                        throw new RuntimeException("Can't find tableID");
+                    }
+                    stmt = localConnection.prepareStatement(INSERT_INTO_WC);
+                    for (Map.Entry<String, Integer> entry : map.entrySet()) {
+                        stmt.setString(1, entry.getKey());
+                        stmt.setInt(2, entry.getValue());
+                        stmt.setInt(3, tableId);
+                        stmt.addBatch(); // Должно работать быстрее?
+                    }
+                    int[] updateCounts = stmt.executeBatch();
+                    int success = 0, successNoInfo = 0, executeFailed = 0;
+                    for (int i : updateCounts) {
+                        if (i >= 0) {
+                            success++;
+                        } else if (i == SUCCESS_NO_INFO) {
+                            successNoInfo++;
+                        } else if (i == EXECUTE_FAILED) {
+                            executeFailed++;
+                        }
+                    }
+//                    log.info("SUCCESS == " + success);
+//                    log.info("SUCCESS_NO_INFO == " + successNoInfo);
+//                    log.info("EXECUTE_FAILED == " + executeFailed);
+                } catch (SQLException e) {
+                    try {
+                        localConnection.rollback();
+                        isOk = false;
+                    } catch (SQLException e1) {
+                        log.warning(e1.toString());
+                        throw new RuntimeException(e1);
+                    }
                 }
-                connection.commit();
-                connection.setAutoCommit(true);
-
+                if (isOk) {
+                    localConnection.commit();
+                }
+                localConnection.setAutoCommit(true);
             } catch (SQLException e) {
                 log.warning(e.toString());
-                e.printStackTrace();
-                try {
-                    connection.rollback();
-                } catch (SQLException e1) {
-                    log.warning(e1.toString());
-                    e1.printStackTrace();
-                }
+                throw new RuntimeException(e);
             }
         } else {
             log.warning("File exist! Conflict name");

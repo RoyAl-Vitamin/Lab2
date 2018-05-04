@@ -82,6 +82,12 @@
             </c:if>
         </div>
 
+        <c:if test="${time > 0}">
+            <div class="row primary-main d-flex justify-content-center">
+                Page will generated on ${time} ns
+            </div>
+        </c:if>
+
         <!-- The Modal -->
         <div class="modal fade" id="myModal">
             <div class="modal-dialog modal-lg">

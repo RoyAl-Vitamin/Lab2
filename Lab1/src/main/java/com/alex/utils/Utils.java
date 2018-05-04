@@ -22,9 +22,9 @@ public class Utils {
 
     private static final String SELECT_FI_FILE_NAME = "SELECT fi.file_input_file_name FROM file_input fi WHERE fi.file_input_file_name = ?;";
 
-    private static final String CREATE_TABLE_FI = "CREATE TABLE if not exists 'file_input' ('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'file_input_file_name' text unique);";
+    private static final String CREATE_TABLE_FI = "CREATE TABLE IF NOT EXISTS 'file_input' ('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'file_input_file_name' text unique);";
 
-    private static final String CREATE_TABLE_WC  = "CREATE TABLE if not exists 'word_count' ('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'word_count_word' text, 'word_count_count' INT, file_input_id REFERENCES file_input(id));";
+    private static final String CREATE_TABLE_WC  = "CREATE TABLE IF NOT EXISTS 'word_count' ('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'word_count_word' text, 'word_count_count' INT, file_input_id REFERENCES file_input(id));";
 
     private static void preCreate() {
         // read from system enviroments
@@ -57,12 +57,43 @@ public class Utils {
 //        log.info("connectionString == " + connectionString);
     }
 
-    public static synchronized Connection getConnection() {
-        if (connection == null) {
-            preCreate();
-            connectToDB();
+    /**
+     * Создаёт коннект к базе, который живёт весь ЖЦ сервлета и сам закрывается при разрущении контекста сервлета
+     * Нужен для нетрудоёмких опреаций и не продолжительных
+     * @return {@link java.sql.Connection}
+     */
+    public static synchronized Connection getMainConnection() {
+        try {
+            if (connection == null || connection.isClosed()) {
+                preCreate();
+                connectToDB();
+            }
+        } catch (SQLException e) {
+            throw new RuntimeException(e);
         }
         return connection;
+    }
+
+    /**
+     * Создаёт новый коннет к базе, который нужно самостоятельно закрыть, используется при многопоточном доступе к БД
+     * Для асинхронных операций
+     * @return {@link java.sql.Connection}
+     */
+    public static synchronized Connection getNewConnection() {
+        Connection newConnection = null;
+        try {
+            if (connection == null || connection.isClosed()) {
+                getMainConnection();
+            }
+            Class.forName(driverName);
+            SQLiteConfig config = new SQLiteConfig();
+            config.setEncoding(SQLiteConfig.Encoding.UTF8);
+            newConnection = DriverManager.getConnection(connectionString, config.toProperties());
+            return newConnection;
+        } catch (SQLException | ClassNotFoundException e) {
+            log.warning(e.toString());
+            throw new RuntimeException(e);
+        }
     }
 
     private static void connectToDB() {
@@ -71,7 +102,7 @@ public class Utils {
             SQLiteConfig config = new SQLiteConfig();
             config.setEncoding(SQLiteConfig.Encoding.UTF8);
             connection = DriverManager.getConnection(connectionString, config.toProperties());
-//            connection = DriverManager.getConnection(connectionString);
+//            connection = DriverManager.getMainConnection(connectionString);
         } catch (ClassNotFoundException e) {
             log.warning("Can't get class. No driver found");
             connection = null;
@@ -98,18 +129,19 @@ public class Utils {
             connection = null;
         } catch (SQLException e) {
             log.warning("Can't close connection");
-            e.printStackTrace();
+            throw new RuntimeException(e);
         }
     }
 
     public static int getCountRowDB() {
         int count = 0;
         try {
-            ResultSet rs = Utils.getConnection().prepareStatement(COUNT_FILES).executeQuery();
+            ResultSet rs = Utils.getMainConnection().prepareStatement(COUNT_FILES).executeQuery();
             if (rs.next()) {
                 count = rs.getInt(1);
             }
         } catch (SQLException e) {
+            log.warning("Can't get count row DB");
             throw new RuntimeException(e);
         }
         return count;

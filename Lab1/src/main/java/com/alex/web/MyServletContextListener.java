@@ -29,7 +29,7 @@ public class MyServletContextListener implements ServletContextListener {
     @Override
     public void contextInitialized(ServletContextEvent arg0) {
         log.info("before starting reload db or create db");
-        Utils.getConnection();
+        Utils.getMainConnection();
         // do all the tasks that you need to perform just after the server starts
         //Notification that the web application initialization process is starting
         ExecutorService pool = Executors.newFixedThreadPool(POOL_SIZE);

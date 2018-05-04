@@ -17,10 +17,12 @@ import java.util.logging.Logger;
 
 import static com.alex.utils.Utils.getCountRowDB;
 
-@WebServlet(name="InitServlet", urlPatterns="/index")
+@WebServlet(urlPatterns = {"/index", "/"})
 public class InitServlet extends HttpServlet {
 
     private Logger log = Logger.getLogger(InitServlet.class.getName());
+
+    private long start = 0;
 
     private final static String MAP_NAME_COUNT =
             "SELECT fi.file_input_file_name, wc.word_count_count " +
@@ -29,9 +31,25 @@ public class InitServlet extends HttpServlet {
             "WHERE wc.word_count_word = ? " +
             "ORDER BY wc.word_count_count DESC;";
 
+    private Map<String, List<Row>> cache = new HashMap<>();
+
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+//        start = System.currentTimeMillis();
+        start = System.nanoTime();
         if (request.getParameter("text") == null || request.getParameter("text").trim().length() == 0) {
+//            request.setAttribute("time", System.currentTimeMillis() - start);
+            request.setAttribute("time", System.nanoTime() - start);
             request.setAttribute("count", getCountRowDB());
+            request.getRequestDispatcher("index.jsp").forward(request, response);
+            return;
+        }
+
+        if (!cache.isEmpty() && cache.containsKey(request.getParameter("text"))) {
+            request.setAttribute("list", cache.get(request.getParameter("text")));
+            request.setAttribute("sentence", request.getParameter("text"));
+            request.setAttribute("count", getCountRowDB());
+//            request.setAttribute("time", System.currentTimeMillis() - start);
+            request.setAttribute("time", System.nanoTime() - start);
             request.getRequestDispatcher("index.jsp").forward(request, response);
             return;
         }
@@ -45,8 +63,22 @@ public class InitServlet extends HttpServlet {
     }
 
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+//        start = System.currentTimeMillis();
+        start = System.nanoTime();
         if (request.getParameter("text") == null || request.getParameter("text").trim().length() == 0) {
+//            request.setAttribute("time", System.currentTimeMillis() - start);
+            request.setAttribute("time", System.nanoTime() - start);
             request.setAttribute("count", getCountRowDB());
+            request.getRequestDispatcher("index.jsp").forward(request, response);
+            return;
+        }
+
+        if (!cache.isEmpty() && cache.containsKey(request.getParameter("text"))) {
+            request.setAttribute("list", cache.get(request.getParameter("text")));
+            request.setAttribute("sentence", request.getParameter("text"));
+            request.setAttribute("count", getCountRowDB());
+//            request.setAttribute("time", System.currentTimeMillis() - start);
+            request.setAttribute("time", System.nanoTime() - start);
             request.getRequestDispatcher("index.jsp").forward(request, response);
             return;
         }
@@ -65,17 +97,11 @@ public class InitServlet extends HttpServlet {
         request.setAttribute("sentence", sentence);
         Map<String, Integer> map = new HashMap<>();
         String[] listString = sentence.split("\\s+");
-        log.info("SENTENCE: " + sentence);
-//        for (String word : listString) {
-//            log.info("word == " + word);
-//        }
         for (String word : listString) {
-            PreparedStatement stmt = Utils.getConnection().prepareStatement(MAP_NAME_COUNT);
+            PreparedStatement stmt = Utils.getMainConnection().prepareStatement(MAP_NAME_COUNT);
             stmt.setString(1, word);
             ResultSet rs = stmt.executeQuery();
-            log.info("FOUND START");
             while (rs.next()) {
-//                log.info("FOUND WORD == " + rs.getString(1) + " COUNT == " + rs.getInt(2));
                 if (map.containsKey(rs.getString(1))) {
                     Integer i = map.get(rs.getString(1));
                     map.put(rs.getString(1), i + rs.getInt(2));
@@ -83,21 +109,17 @@ public class InitServlet extends HttpServlet {
                     map.put(rs.getString(1), rs.getInt(2));
                 }
             }
-            log.info("FOUND END");
         }
 
         if (map.isEmpty()) {
-            log.info("MAP is Empty");
+            cache.put(sentence, Collections.singletonList(new Row("#EMPTY", 0)));
             request.setAttribute("list", Collections.singletonList(new Row("#EMPTY", 0)));
             request.setAttribute("count", getCountRowDB());
+//            request.setAttribute("time", System.currentTimeMillis() - start);
+            request.setAttribute("time", System.nanoTime() - start);
             request.getRequestDispatcher("index.jsp").forward(request, response);
             return;
         }
-//        log.info("MAP:");
-//        for (Map.Entry<String, Integer> entry : map.entrySet()) {
-//            log.info("getKey == " + entry.getKey() + " getValue" + entry.getValue());
-//        }
-
 
         List<Map.Entry<String, Integer>> list = new ArrayList<>(map.entrySet());
         list.sort((Map.Entry<String, Integer> o1, Map.Entry<String, Integer> o2)-> o2.getValue().compareTo(o1.getValue()));
@@ -106,13 +128,16 @@ public class InitServlet extends HttpServlet {
         for (Map.Entry<String, Integer> entry : list) {
             newList.add(new Row(entry.getKey(), entry.getValue()));
         }
-        request.setAttribute("list", newList);
 
-        log.info("LIST:");
-        for (Row row : newList) {
-            log.info("getName == " + row.getName() + " getIndex == " + row.getIndex());
-        }
+        cache.put(sentence, newList);
+        request.setAttribute("list", newList);
         request.setAttribute("count", getCountRowDB());
+//        request.setAttribute("time", System.currentTimeMillis() - start);
+        request.setAttribute("time", System.nanoTime() - start);
         request.getRequestDispatcher("index.jsp").forward(request, response);
+    }
+
+    public void dropCache() {
+        cache.clear();
     }
 }

@@ -20,7 +20,7 @@ public class DropDB extends HttpServlet {
     @Override
     protected void doGet(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
         log.info("Drop tables");
-        Connection connection = Utils.getConnection();
+        Connection connection = Utils.getMainConnection();
         try {
             connection.prepareStatement("DELETE FROM word_count;").execute();
             connection.prepareStatement("DELETE FROM file_input;").execute();
