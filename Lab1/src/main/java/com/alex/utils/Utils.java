@@ -12,11 +12,11 @@ public class Utils {
 
     private static final String driverName = "org.sqlite.JDBC";
 
-    private static String connectionString;
+    private static String connectionString = getConnectionString();
 
     private static Logger log = Logger.getLogger(Utils.class.getName());
 
-    private static Connection connection = null;
+    private static final String WAL = "pragma journal_mode=wal";
 
     private static final String COUNT_FILES = "SELECT Count(fi.id) FROM file_input fi";
 
@@ -26,7 +26,26 @@ public class Utils {
 
     private static final String CREATE_TABLE_WC  = "CREATE TABLE IF NOT EXISTS 'word_count' ('id' INTEGER PRIMARY KEY AUTOINCREMENT, 'word_count_word' text, 'word_count_count' INT, file_input_id REFERENCES file_input(id));";
 
-    private static void preCreate() {
+    /**
+     * Создаёт новый коннет к базе, который нужно самостоятельно закрыть, используется при многопоточном доступе к БД
+     * Для асинхронных операций
+     * @return {@link java.sql.Connection}
+     */
+    public static synchronized Connection getNewConnection() {
+        Connection connection = null;
+        try {
+            SQLiteConfig config = new SQLiteConfig();
+            config.setEncoding(SQLiteConfig.Encoding.UTF8);
+//            config.setJournalMode(SQLiteConfig.JournalMode.WAL);
+            connection = DriverManager.getConnection(connectionString, config.toProperties());
+        } catch (SQLException e) {
+            log.warning(e.toString());
+            throw new RuntimeException(e);
+        }
+        return connection;
+    }
+
+    private static String getConnectionString() {
         // read from system enviroments
         String catalinaHome = System.getenv().get("CATALINA_HOME");
         if (catalinaHome == null) {
@@ -52,91 +71,43 @@ public class Utils {
 //                + "-" + version + File.separator + "WEB-INF" + File.separator + "classes" + File.separator
 //                + "sqlitedb.db";
 
-        connectionString = sb.toString();
-
-//        log.info("connectionString == " + connectionString);
+        return sb.toString();
     }
 
-    /**
-     * Создаёт коннект к базе, который живёт весь ЖЦ сервлета и сам закрывается при разрущении контекста сервлета
-     * Нужен для нетрудоёмких опреаций и не продолжительных
-     * @return {@link java.sql.Connection}
-     */
-    public static synchronized Connection getMainConnection() {
-        try {
-            if (connection == null || connection.isClosed()) {
-                preCreate();
-                connectToDB();
-            }
-        } catch (SQLException e) {
-            throw new RuntimeException(e);
-        }
-        return connection;
-    }
+    public static void init() {
 
-    /**
-     * Создаёт новый коннет к базе, который нужно самостоятельно закрыть, используется при многопоточном доступе к БД
-     * Для асинхронных операций
-     * @return {@link java.sql.Connection}
-     */
-    public static synchronized Connection getNewConnection() {
-        Connection newConnection = null;
-        try {
-            if (connection == null || connection.isClosed()) {
-                getMainConnection();
-            }
-            Class.forName(driverName);
-            SQLiteConfig config = new SQLiteConfig();
-            config.setEncoding(SQLiteConfig.Encoding.UTF8);
-            newConnection = DriverManager.getConnection(connectionString, config.toProperties());
-            return newConnection;
-        } catch (SQLException | ClassNotFoundException e) {
-            log.warning(e.toString());
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static void connectToDB() {
+        SQLiteConfig config;
         try {
             Class.forName(driverName);
-            SQLiteConfig config = new SQLiteConfig();
+            config = new SQLiteConfig();
             config.setEncoding(SQLiteConfig.Encoding.UTF8);
-            connection = DriverManager.getConnection(connectionString, config.toProperties());
-//            connection = DriverManager.getMainConnection(connectionString);
+//            config.setJournalMode(SQLiteConfig.JournalMode.WAL);
         } catch (ClassNotFoundException e) {
             log.warning("Can't get class. No driver found");
-            connection = null;
-            throw new RuntimeException(e);
-        } catch (SQLException e) {
-            log.warning("Can't get connection. Incorrect URL");
-            connection = null;
             throw new RuntimeException(e);
         }
-        try {
-            Statement statmt = connection.createStatement();
 
+        try (Connection connection = DriverManager.getConnection(connectionString, config.toProperties());
+             Statement statmt = connection.createStatement()) {
+//            statmt.execute(WAL);
             statmt.execute(CREATE_TABLE_FI);
             statmt.execute(CREATE_TABLE_WC);
         } catch (SQLException e) {
-            log.warning("Can't create Table");
+            log.warning("Can't get connection. Incorrect URL or can't create Table");
             throw new RuntimeException(e);
         }
     }
 
-    public static void closeConnectToDB() {
-        try {
-            connection.close();
-            connection = null;
-        } catch (SQLException e) {
-            log.warning("Can't close connection");
-            throw new RuntimeException(e);
-        }
-    }
-
+    /**
+     * Количество проиндексированных файлов
+     * @return
+     */
     public static int getCountRowDB() {
         int count = 0;
-        try {
-            ResultSet rs = Utils.getMainConnection().prepareStatement(COUNT_FILES).executeQuery();
+        try (Connection connection = getNewConnection();
+             PreparedStatement pstmt = connection.prepareStatement(COUNT_FILES);
+             ResultSet rs = pstmt.executeQuery()) {
+
             if (rs.next()) {
                 count = rs.getInt(1);
             }
@@ -153,14 +124,19 @@ public class Utils {
      * @return
      */
     public static boolean rowIsExists(String fileName) {
-        try {
-            PreparedStatement pstmt = connection.prepareStatement(SELECT_FI_FILE_NAME);
+        boolean ret = false;
+
+        try (Connection connection = getNewConnection();
+             PreparedStatement pstmt = connection.prepareStatement(SELECT_FI_FILE_NAME)) {
+
             pstmt.setString(1, fileName);
             ResultSet rs = pstmt.executeQuery();
-
-            return rs.next();
+            ret = rs.next();
+            rs.close();
         } catch (SQLException e) {
+            log.warning(e.toString());
             throw new RuntimeException(e);
         }
+        return ret;
     }
 }

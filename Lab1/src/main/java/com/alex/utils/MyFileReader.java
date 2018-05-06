@@ -23,8 +23,6 @@ public class MyFileReader implements Runnable {
 
     private File file;
 
-    public static Connection connection = Utils.getMainConnection();
-
     @Override
     public void run() {
         pasteIntoDB(file.getName(), read());
@@ -34,8 +32,7 @@ public class MyFileReader implements Runnable {
      * Вставка данных в ХэшМап для последующей вставки в БД
      */
     private Map<String, Integer> read() {
-//        try(FileReader reader = new FileReader(file)) {
-        try(InputStreamReader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
+        try (InputStreamReader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
             Scanner scan = new Scanner(reader);
             Map<String, Integer> hashMap = new HashMap<>();
             while (scan.hasNextLine()) {
@@ -59,31 +56,48 @@ public class MyFileReader implements Runnable {
      * Вставка данных в таблицу
      */
     public static void pasteIntoDB(String fileName, Map<String, Integer> map) {
+        log.info(fileName + ": pasteIntoDB");
         if (!Utils.rowIsExists(fileName)) {
-            boolean isOk = true;
             try (Connection localConnection = Utils.getNewConnection()) {
                 localConnection.setAutoCommit(false);
                 try {
-                    PreparedStatement stmt = localConnection.prepareStatement(INSERT_INTO_FI);
-                    stmt.setString(1, fileName);
-                    stmt.executeUpdate();
-                    stmt = localConnection.prepareStatement(SELECT_FI_ID);
-                    stmt.setString(1, fileName);
-                    ResultSet rs = stmt.executeQuery();
+                    log.info(fileName + ": localConnection()");
+                    try (PreparedStatement stmt = localConnection.prepareStatement(INSERT_INTO_FI)) {
+                        stmt.setString(1, fileName);
+                        stmt.executeUpdate();
+                        localConnection.commit();
+                        stmt.close();
+                        log.info(fileName + ": INSERT_INTO_FI");
+                    }
+
                     int tableId = 0;
-                    if (rs.next()) {
-                        tableId = rs.getInt(1);
-                    } else {
-                        throw new RuntimeException("Can't find tableID");
+                    try (PreparedStatement stmt = localConnection.prepareStatement(SELECT_FI_ID)) {
+
+                        stmt.setString(1, fileName);
+                        try (ResultSet rs = stmt.executeQuery()) {
+                            localConnection.commit();
+                            log.info(fileName + ": SELECT_FI_ID");
+                            if (rs.next()) {
+                                tableId = rs.getInt(1);
+                            } else {
+                                throw new RuntimeException("Can't find tableID");
+                            }
+                        }
+                        log.info(fileName + ": tableID" + tableId);
                     }
-                    stmt = localConnection.prepareStatement(INSERT_INTO_WC);
-                    for (Map.Entry<String, Integer> entry : map.entrySet()) {
-                        stmt.setString(1, entry.getKey());
-                        stmt.setInt(2, entry.getValue());
-                        stmt.setInt(3, tableId);
-                        stmt.addBatch(); // Должно работать быстрее?
+
+                    int[] updateCounts;
+                    try (PreparedStatement stmt = localConnection.prepareStatement(INSERT_INTO_WC)){
+                        for (Map.Entry<String, Integer> entry : map.entrySet()) {
+                            stmt.setString(1, entry.getKey());
+                            stmt.setInt(2, entry.getValue());
+                            stmt.setInt(3, tableId);
+                            stmt.addBatch();
+                        }
+                        updateCounts = stmt.executeBatch();
                     }
-                    int[] updateCounts = stmt.executeBatch();
+
+                    localConnection.commit();
                     int success = 0, successNoInfo = 0, executeFailed = 0;
                     for (int i : updateCounts) {
                         if (i >= 0) {
@@ -94,20 +108,17 @@ public class MyFileReader implements Runnable {
                             executeFailed++;
                         }
                     }
-//                    log.info("SUCCESS == " + success);
-//                    log.info("SUCCESS_NO_INFO == " + successNoInfo);
-//                    log.info("EXECUTE_FAILED == " + executeFailed);
+                    log.info("SUCCESS == " + success);
+                    log.info("SUCCESS_NO_INFO == " + successNoInfo);
+                    log.info("EXECUTE_FAILED == " + executeFailed);
                 } catch (SQLException e) {
+                    log.warning(e.toString());
                     try {
                         localConnection.rollback();
-                        isOk = false;
                     } catch (SQLException e1) {
                         log.warning(e1.toString());
                         throw new RuntimeException(e1);
                     }
-                }
-                if (isOk) {
-                    localConnection.commit();
                 }
                 localConnection.setAutoCommit(true);
             } catch (SQLException e) {

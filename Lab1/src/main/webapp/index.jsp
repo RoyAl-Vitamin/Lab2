@@ -82,9 +82,9 @@
             </c:if>
         </div>
 
-        <c:if test="${time > 0}">
+        <c:if test="${time != null && fn:length(list) != 0}">
             <div class="row primary-main d-flex justify-content-center">
-                Page will generated on ${time} ns
+                The page was generated in ${time}
             </div>
         </c:if>
 

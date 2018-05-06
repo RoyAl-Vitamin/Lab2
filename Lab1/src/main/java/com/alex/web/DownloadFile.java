@@ -1,6 +1,7 @@
 package com.alex.web;
 
 import com.alex.utils.MyFileReader;
+import com.alex.utils.Row;
 import com.alex.utils.Utils;
 
 import javax.servlet.ServletException;
@@ -60,9 +61,11 @@ public class DownloadFile extends HttpServlet {
                     }
                 }
             }
+            log.info(fileName + ": pasteIntoDB");
             MyFileReader.pasteIntoDB(fileName, hashMap);
         }
 
+//        getServletContext().setAttribute("cache", new HashMap<String, List<Row>>());
         request.setAttribute("count", Utils.getCountRowDB());
         request.getRequestDispatcher("index.jsp").forward(request, response);
     }

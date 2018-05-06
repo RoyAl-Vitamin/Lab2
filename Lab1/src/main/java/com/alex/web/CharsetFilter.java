@@ -10,8 +10,6 @@ import java.util.logging.Logger;
         @WebInitParam(name = "charset", value = "UTF-8") })
 public class CharsetFilter implements Filter {
 
-    private Logger log = Logger.getLogger(CharsetFilter.class.getName());
-
     private String encoding;
 
     @Override

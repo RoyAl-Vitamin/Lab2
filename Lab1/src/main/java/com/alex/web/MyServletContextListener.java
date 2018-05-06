@@ -23,13 +23,14 @@ public class MyServletContextListener implements ServletContextListener {
     public void contextDestroyed(ServletContextEvent arg0) {
         //Notification that the servlet context is about to be shut down.
         log.info("close connection DB");
-        Utils.closeConnectToDB();
+//        Utils.closeConnectToDB();
     }
 
     @Override
     public void contextInitialized(ServletContextEvent arg0) {
         log.info("before starting reload db or create db");
-        Utils.getMainConnection();
+//        Utils.getMainConnection();
+        Utils.init();
         // do all the tasks that you need to perform just after the server starts
         //Notification that the web application initialization process is starting
         ExecutorService pool = Executors.newFixedThreadPool(POOL_SIZE);
