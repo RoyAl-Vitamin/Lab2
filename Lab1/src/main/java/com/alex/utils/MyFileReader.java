@@ -32,9 +32,11 @@ public class MyFileReader implements Runnable {
      * Вставка данных в ХэшМап для последующей вставки в БД
      */
     private Map<String, Integer> read() {
-        try (InputStreamReader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8)) {
-            Scanner scan = new Scanner(reader);
-            Map<String, Integer> hashMap = new HashMap<>();
+        Map<String, Integer> hashMap;
+        try (InputStreamReader reader = new InputStreamReader(new FileInputStream(file), StandardCharsets.UTF_8);
+             Scanner scan = new Scanner(reader)) {
+
+            hashMap = new HashMap<>();
             while (scan.hasNextLine()) {
                 String[] wordArray = scan.nextLine().trim().replaceAll("[^a-zA-Zа-яА-Я ]", "").toLowerCase().split("\\s+");
 
@@ -46,10 +48,10 @@ public class MyFileReader implements Runnable {
                     }
                 }
             }
-            return hashMap;
         } catch(IOException ex){
             throw new RuntimeException(ex);
         }
+        return hashMap;
     }
 
     /**

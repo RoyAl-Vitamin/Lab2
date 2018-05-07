@@ -12,11 +12,11 @@ public class Utils {
 
     private static final String driverName = "org.sqlite.JDBC";
 
-    private static String connectionString = getConnectionString();
-
     private static Logger log = Logger.getLogger(Utils.class.getName());
 
-    private static final String WAL = "pragma journal_mode=wal";
+    private static String connectionString = getConnectionString();
+
+//    private static final String WAL = "pragma journal_mode=wal";
 
     private static final String COUNT_FILES = "SELECT Count(fi.id) FROM file_input fi";
 
@@ -81,7 +81,7 @@ public class Utils {
             Class.forName(driverName);
             config = new SQLiteConfig();
             config.setEncoding(SQLiteConfig.Encoding.UTF8);
-//            config.setJournalMode(SQLiteConfig.JournalMode.WAL);
+            config.setJournalMode(SQLiteConfig.JournalMode.WAL);
         } catch (ClassNotFoundException e) {
             log.warning("Can't get class. No driver found");
             throw new RuntimeException(e);
@@ -89,7 +89,6 @@ public class Utils {
 
         try (Connection connection = DriverManager.getConnection(connectionString, config.toProperties());
              Statement statmt = connection.createStatement()) {
-//            statmt.execute(WAL);
             statmt.execute(CREATE_TABLE_FI);
             statmt.execute(CREATE_TABLE_WC);
         } catch (SQLException e) {

@@ -111,7 +111,7 @@ public class InitServlet extends HttpServlet {
              PreparedStatement stmt = localConnection.prepareStatement(MAP_NAME_COUNT)) {
 
             for (String word : listString) {
-                stmt.setString(1, word);
+                stmt.setString(1, word.toLowerCase());
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
                         if (map.containsKey(rs.getString(1))) {
