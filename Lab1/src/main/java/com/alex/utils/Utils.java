@@ -36,7 +36,7 @@ public class Utils {
         try {
             SQLiteConfig config = new SQLiteConfig();
             config.setEncoding(SQLiteConfig.Encoding.UTF8);
-//            config.setJournalMode(SQLiteConfig.JournalMode.WAL);
+            config.setJournalMode(SQLiteConfig.JournalMode.WAL);
             connection = DriverManager.getConnection(connectionString, config.toProperties());
         } catch (SQLException e) {
             log.warning(e.toString());

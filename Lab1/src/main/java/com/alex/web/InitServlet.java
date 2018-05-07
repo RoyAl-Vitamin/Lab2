@@ -61,7 +61,8 @@ public class InitServlet extends HttpServlet {
      * @throws ServletException
      * @throws IOException
      */
-    private boolean revertRequest(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    private boolean revertRequest(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
         if (request.getParameter("text") == null || request.getParameter("text").trim().length() == 0) {
             request.setAttribute("time", getProcessedTime());
             request.setAttribute("count", getCountRowDB());
@@ -69,8 +70,15 @@ public class InitServlet extends HttpServlet {
             return true;
         }
 
-        if (cache.containsKey(request.getParameter("text"))) {
-            request.setAttribute("list", cache.get(request.getParameter("text")));
+        // Что бы не кэшировать лишнего
+        String sentence = request.getParameter("text")
+                .trim()
+                .replaceAll("[^a-zA-Zа-яА-Я ]", "")
+                .toLowerCase()
+                .trim();
+
+        if (cache.containsKey(sentence)) {
+            request.setAttribute("list", cache.get(sentence));
             request.setAttribute("sentence", request.getParameter("text"));
             request.setAttribute("count", getCountRowDB());
             request.setAttribute("time", getProcessedTime());
@@ -80,7 +88,8 @@ public class InitServlet extends HttpServlet {
         return false;
     }
 
-    protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
+    protected void doPost(HttpServletRequest request, HttpServletResponse response)
+            throws ServletException, IOException {
         preCreate();
 
         if (revertRequest(request, response)) {
@@ -105,13 +114,14 @@ public class InitServlet extends HttpServlet {
         String sentence = request.getParameter("text");
         request.setAttribute("sentence", sentence);
         Map<String, Integer> map = new HashMap<>();
-        String[] listString = sentence.split("\\s+");
+        String[] listString = sentence
+                .trim().replaceAll("[^a-zA-Zа-яА-Я ]", "").toLowerCase().trim().split("\\s+");
 
         try (Connection localConnection = Utils.getNewConnection();
              PreparedStatement stmt = localConnection.prepareStatement(MAP_NAME_COUNT)) {
 
             for (String word : listString) {
-                stmt.setString(1, word.toLowerCase());
+                stmt.setString(1, word);
                 try (ResultSet rs = stmt.executeQuery()) {
                     while (rs.next()) {
                         if (map.containsKey(rs.getString(1))) {

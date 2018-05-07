@@ -31,8 +31,6 @@ public class DownloadFile extends HttpServlet {
 
     @Override
     protected void doPost(HttpServletRequest request, HttpServletResponse response) throws ServletException, IOException {
-        log.info("/download:POST");
-
         if (request.getParameter("url") != null && request.getParameter("url").trim().length() != 0) {
             String fileName = request.getParameter("url");
             URL url = new URL(fileName);
@@ -40,11 +38,9 @@ public class DownloadFile extends HttpServlet {
         } else if (request.getParts().size() == 1) {
             // Попытаемся никуда не сохранять файл, а распарсить его на ходу
             Part filePart = request.getPart("file");
-//        String fileName = Paths.get(filePart.getSubmittedFileName()).getFileName().toString(); // MSIE fix.
             String fileName = filePart.getSubmittedFileName();
             wrappedInput(fileName, filePart.getInputStream());
         }
-//        getServletContext().setAttribute("cache", new HashMap<String, List<Row>>());
         request.setAttribute("count", Utils.getCountRowDB());
         request.getRequestDispatcher("index.jsp").forward(request, response);
     }

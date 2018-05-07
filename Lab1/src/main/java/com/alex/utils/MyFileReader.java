@@ -58,19 +58,16 @@ public class MyFileReader implements Runnable {
      * Вставка данных в таблицу
      */
     public static void pasteIntoDB(String fileName, Map<String, Integer> map) {
-        log.info(fileName + ": pasteIntoDB");
         if (!Utils.rowIsExists(fileName)) {
             try (Connection localConnection = Utils.getNewConnection()) {
                 localConnection.setAutoCommit(false);
                 try {
-                    log.info(fileName + ": localConnection()");
                     try (PreparedStatement stmt = localConnection.prepareStatement(INSERT_INTO_FI)) {
                         stmt.setString(1, fileName);
                         stmt.executeUpdate();
-                        localConnection.commit();
                         stmt.close();
-                        log.info(fileName + ": INSERT_INTO_FI");
                     }
+                    localConnection.commit();
 
                     int tableId = 0;
                     try (PreparedStatement stmt = localConnection.prepareStatement(SELECT_FI_ID)) {
@@ -78,41 +75,46 @@ public class MyFileReader implements Runnable {
                         stmt.setString(1, fileName);
                         try (ResultSet rs = stmt.executeQuery()) {
                             localConnection.commit();
-                            log.info(fileName + ": SELECT_FI_ID");
                             if (rs.next()) {
                                 tableId = rs.getInt(1);
                             } else {
                                 throw new RuntimeException("Can't find tableID");
                             }
                         }
-                        log.info(fileName + ": tableID" + tableId);
                     }
+                    localConnection.commit();
 
-                    int[] updateCounts;
-                    try (PreparedStatement stmt = localConnection.prepareStatement(INSERT_INTO_WC)){
-                        for (Map.Entry<String, Integer> entry : map.entrySet()) {
-                            stmt.setString(1, entry.getKey());
-                            stmt.setInt(2, entry.getValue());
-                            stmt.setInt(3, tableId);
-                            stmt.addBatch();
+                    int[] updateCounts = null;
+                    boolean isOk = false;
+                    while (!isOk) { // Что бы избежать SQLLite_BUSY
+                        try (PreparedStatement stmt = localConnection.prepareStatement(INSERT_INTO_WC)) {
+                            for (Map.Entry<String, Integer> entry : map.entrySet()) {
+                                stmt.setString(1, entry.getKey());
+                                stmt.setInt(2, entry.getValue());
+                                stmt.setInt(3, tableId);
+                                stmt.addBatch();
+                            }
+                            updateCounts = stmt.executeBatch();
+                            isOk = true;
+                        } catch (SQLException e) {
+                            localConnection.rollback();
                         }
-                        updateCounts = stmt.executeBatch();
                     }
 
                     localConnection.commit();
-                    int success = 0, successNoInfo = 0, executeFailed = 0;
-                    for (int i : updateCounts) {
-                        if (i >= 0) {
-                            success++;
-                        } else if (i == SUCCESS_NO_INFO) {
-                            successNoInfo++;
-                        } else if (i == EXECUTE_FAILED) {
-                            executeFailed++;
-                        }
-                    }
-                    log.info("SUCCESS == " + success);
-                    log.info("SUCCESS_NO_INFO == " + successNoInfo);
-                    log.info("EXECUTE_FAILED == " + executeFailed);
+//                    int success = 0, successNoInfo = 0, executeFailed = 0;
+//                    for (int i : updateCounts) {
+//                        if (i >= 0) {
+//                            success++;
+//                        } else if (i == SUCCESS_NO_INFO) {
+//                            successNoInfo++;
+//                        } else if (i == EXECUTE_FAILED) {
+//                            executeFailed++;
+//                        }
+//                    }
+//                    log.info(fileName + ": SUCCESS == " + success);
+//                    log.info(fileName + ": SUCCESS_NO_INFO == " + successNoInfo);
+//                    log.info(fileName + ": EXECUTE_FAILED == " + executeFailed);
                 } catch (SQLException e) {
                     log.warning(e.toString());
                     try {
